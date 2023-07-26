@@ -1,20 +1,24 @@
 #!/bin/bash 
 
-set +x
+#set +x
+
+# Bypass possible mismatch of libcurl provided with agent
+LD_LIBRARY_PATH=/usr/lib64:$LD_LIBRARY_PATH
+awsacctId=`curl -s http://169.254.169.254/latest/dynamic/instance-identity/document | grep accountId | cut -d  '"' -f 4`
 
 print_and_clean_runtime_files() {
     appid=$1
     jobid=$2
     oid=$3
-    aws s3 cp s3://623469066856-predictive-maintenance/logs/applications/${appid}/jobs/${jobid}/SPARK_DRIVER/stdout.gz stdout_${oid}.gz
+    aws s3 cp s3://${awsacctId}-predictive-maintenance/logs/applications/${appid}/jobs/${jobid}/SPARK_DRIVER/stdout.gz stdout_${oid}.gz
     gunzip stdout_${oid}.gz
     cat stdout_${oid}
 
-    aws s3 cp s3://623469066856-predictive-maintenance/logs/applications/${appid}/jobs/${jobid}/SPARK_DRIVER/stderr.gz stderr_${oid}.gz
+    aws s3 cp s3://${awsacctId}-predictive-maintenance/logs/applications/${appid}/jobs/${jobid}/SPARK_DRIVER/stderr.gz stderr_${oid}.gz
     gunzip stderr_${oid}.gz
     cat stderr_${oid}
 
-    aws s3 rm s3://623469066856-predictive-maintenance/maintenance_model_${oid} --recursive
+    aws s3 rm s3://${awsacctId}-predictive-maintenance/maintenance_model_${oid} --recursive
     rm stdout_${oid}
     rm stderr_${oid}    
 }
@@ -43,7 +47,7 @@ echo sleeptime is ${sleeptime}
 #curl --silent http://169.254.169.254/latest/meta-data/iam/info
 
 # Delete output folder in case it already exists
-#aws s3 rm s3://623469066856-predictive-maintenance/maintenance_model --recursive
+#aws s3 rm s3://${awsacctId}-predictive-maintenance/maintenance_model --recursive
 
 #appid=`aws emr-serverless create-application \
 #    --release-label emr-6.10.0 \
@@ -53,22 +57,22 @@ echo sleeptime is ${sleeptime}
 
 jobid=`aws emr-serverless start-job-run \
     --application-id ${appid} \
-    --execution-role-arn arn:aws:iam::623469066856:role/EMRServerlessS3RuntimeRole \
+    --execution-role-arn arn:aws:iam::${awsacctId}:role/EMRServerlessS3RuntimeRole \
     --name jog-pm-spark-analytics \
     --job-driver "{
         \"sparkSubmit\": {
-          \"entryPoint\": \"s3://623469066856-predictive-maintenance/lr-assembly-1.0.jar\",
-          \"entryPointArguments\": [\"s3://623469066856-predictive-maintenance/maintenance_data.csv\",\"s3://623469066856-predictive-maintenance/maintenance_model_${oid}\"],
+          \"entryPoint\": \"s3://${awsacctId}-predictive-maintenance/lr-assembly-1.0.jar\",
+          \"entryPointArguments\": [\"s3://${awsacctId}-predictive-maintenance/maintenance_data.csv\",\"s3://${awsacctId}-predictive-maintenance/maintenance_model_${oid}\"],
           \"sparkSubmitParameters\": \"--class com.bmc.lr.readCSV --conf spark.executor.cores=1 --conf spark.executor.memory=4g --conf spark.driver.cores=1 --conf spark.driver.memory=4g --conf spark.executor.instances=1\"
         }
     }" \
-    --configuration-overrides '{
-        "monitoringConfiguration": {
-            "s3MonitoringConfiguration": {
-                "logUri": "s3://623469066856-predictive-maintenance/logs/"
+    --configuration-overrides "{
+        \"monitoringConfiguration\": {
+            \"s3MonitoringConfiguration\": {
+                \"logUri\": \"s3://${awsacctId}-predictive-maintenance/logs/\"
             }
         }
-    }' \
+    }" \
     --query "jobRunId" --output text`
 
 echo jobid is ${jobid}
