@@ -232,7 +232,7 @@ function Do-Jobs
 				$jobCtr++
 				Add-Member -InputObject $job -MemberType NoteProperty -Name sq -Value $jobCtr
 			}
-			$jobHash.statuses | Format-Table -RepeatHeader -Property sq, name, folder, status, jobId, application, subApplication, orderDate, startTime, endTime, host, cyclic
+			$jobHash.statuses | Format-Table -RepeatHeader -Property sq, type, name, folder, status, jobId, application, subApplication, orderDate, startTime, endTime, host, cyclic
 			
 			$jobSelect = 0
 			
