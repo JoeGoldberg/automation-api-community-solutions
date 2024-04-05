@@ -102,7 +102,7 @@ function Do-Folders
 	While ($folderFilter -ne "q") {
 
 		$folderCtr = 0
-		[String]$folderJSON = ctm deploy jobs::get -e $envName -s """ctm=*&folder=$folderFilter"""
+		[String]$folderJSON = ctm deploy jobs::get -e $envName -s "ctm=*&folder=$folderFilter"
 		if ($folderJSON.Length -eq 0) {
 			Write-Host No folders found for selection criteria: folder = $folderFilter
 		}
@@ -221,7 +221,7 @@ function Do-Jobs
 		
 		$saveJobsFilter = $jobsFilter
 		$customFilter = ""
-		[String]$jobInfo = ctm run jobs:status::get -e $envName -s """ctm=*&deleted=false&$jobsFilter"""
+		[String]$jobInfo = ctm run jobs:status::get -e $envName -s "ctm=*&deleted=false&$jobsFilter"
 		$jobHash = ConvertFrom-JSON $jobinfo
 		[Int]$returnedJobs = $jobHash.returned
 		
